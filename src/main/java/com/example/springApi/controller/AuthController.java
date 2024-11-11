@@ -2,40 +2,46 @@ package com.example.springApi.controller;
 
 import com.example.springApi.dto.AuthRequestDto;
 import com.example.springApi.service.JwtUtilService;
+import com.example.springApi.service.UserData;
+import com.example.springApi.service.UserDetailServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+
 @Controller
 @RequestMapping("api/v1/auth")
 public class AuthController {
     @Autowired
     private AuthenticationManager authenticationManager;
     @Autowired
-    private UserDetailsService userDetailsService;
+    private UserDetailServiceImpl userDetailsService;
     @Autowired
     private JwtUtilService jwtUtilService;
     @PostMapping("/login")
-    public ResponseEntity<?> auth(@RequestBody AuthRequestDto authRequestDto){
+    public ResponseEntity<?> auth(@RequestBody AuthRequestDto authRequestDto) throws Exception {
         try{
-            this.authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequestDto.getUser(), authRequestDto.getPassword()));
-
+            this.authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequestDto.getEmail(), authRequestDto.getPassword()));
             //Validar User en Bd
-            UserDetails userDetails =  this.userDetailsService.loadUserByUsername(authRequestDto.getUser());
+            UserData userDetails =  this.userDetailsService.loadUserByEmail(authRequestDto.getEmail());
             //Generar Token
             String jwt = this.jwtUtilService.generateToken(userDetails);
-            System.out.println(userDetails.getUsername());
-            return new ResponseEntity<>(jwt, org.springframework.http.HttpStatus.OK);
-        }catch(Exception e){            UserDetails userDetails =  this.userDetailsService.loadUserByUsername(authRequestDto.getUser());
-
-            System.out.println(userDetails.getUsername());
-            return new ResponseEntity<>("Invalid credentials", org.springframework.http.HttpStatus.FORBIDDEN);
+            return new ResponseEntity<>(jwt, HttpStatus.OK);
+        }catch(Exception e){
+            UserDetails userDetails =  this.userDetailsService.loadUserByEmail(authRequestDto.getEmail());
+            return new ResponseEntity<>("Invalid credentials", HttpStatus.FORBIDDEN);
         }
+    }
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody AuthRequestDto authRequestDto){
+        //Guardar en BD
+
+        return new ResponseEntity<>("User registered", org.springframework.http.HttpStatus.OK);
     }
 }

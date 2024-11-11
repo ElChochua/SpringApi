@@ -1,13 +1,12 @@
 package com.example.springApi.dto;
 
 import lombok.Data;
-import lombok.Getter;
 import lombok.Setter;
 
-@Setter
-@Getter
 @Data
-public class AuthRequestDto {
+public class RegisterDto {
+
+    private String user;
     private String email;
     private String password;
 
