@@ -15,5 +15,11 @@ public class UserRepository implements IUserRepository{
         return jdbcTemplate.queryForObject(Query,new Object[]{user},
                 new BeanPropertyRowMapper<>(UserModel.class));
     }
+    @Override
+    public UserModel findByEmail(String email) {
+        String Query = "SELECT * FROM Users WHERE Email = ?";
+        return jdbcTemplate.queryForObject(Query,new Object[]{email},
+                new BeanPropertyRowMapper<>(UserModel.class));
+    }
 
 }

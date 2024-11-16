@@ -24,16 +24,16 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> auth(@RequestBody AuthRequestDto authRequestDto){
         try{
-            this.authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequestDto.getUser(), authRequestDto.getPassword()));
+            this.authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequestDto.getEmail(), authRequestDto.getPassword()));
 
             //Validar User en Bd
-            UserDetails userDetails =  this.userDetailsService.loadUserByUsername(authRequestDto.getUser());
+            UserDetails userDetails =  this.userDetailsService.loadUserByUsername(authRequestDto.getEmail());
             //Generar Token
             String jwt = this.jwtUtilService.generateToken(userDetails, "default");
             System.out.println(userDetails.getUsername());
             return new ResponseEntity<>(jwt, org.springframework.http.HttpStatus.OK);
         }catch(Exception e){
-            UserDetails userDetails =  this.userDetailsService.loadUserByUsername(authRequestDto.getUser());
+            UserDetails userDetails =  this.userDetailsService.loadUserByUsername(authRequestDto.getEmail());
             System.out.println(userDetails.getUsername());
             return new ResponseEntity<>("Invalid credentials", org.springframework.http.HttpStatus.FORBIDDEN);
         }
