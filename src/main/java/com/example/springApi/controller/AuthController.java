@@ -29,11 +29,11 @@ public class AuthController {
             //Validar User en Bd
             UserDetails userDetails =  this.userDetailsService.loadUserByUsername(authRequestDto.getUser());
             //Generar Token
-            String jwt = this.jwtUtilService.generateToken(userDetails);
+            String jwt = this.jwtUtilService.generateToken(userDetails, "default");
             System.out.println(userDetails.getUsername());
             return new ResponseEntity<>(jwt, org.springframework.http.HttpStatus.OK);
-        }catch(Exception e){            UserDetails userDetails =  this.userDetailsService.loadUserByUsername(authRequestDto.getUser());
-
+        }catch(Exception e){
+            UserDetails userDetails =  this.userDetailsService.loadUserByUsername(authRequestDto.getUser());
             System.out.println(userDetails.getUsername());
             return new ResponseEntity<>("Invalid credentials", org.springframework.http.HttpStatus.FORBIDDEN);
         }

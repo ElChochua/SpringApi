@@ -5,6 +5,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface IUserRepository {
-    public UserModel findByUser(String user);
+    UserModel findByUser(String user);
 
 }
