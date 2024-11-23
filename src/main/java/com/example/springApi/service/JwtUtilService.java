@@ -12,7 +12,7 @@ import java.util.function.Function;
 @Service
 public class JwtUtilService {
     private static final String SECRET = "TExBVkVfTVVZX1NFQ1JFVEzE3Zmxu7BSGSJx72BSBXM";
-    private static final long EXPIRATION = 1000*60*20;
+    private static final long EXPIRATION = 10000*60*20;
 
     public String generateToken(UserDetails userDetails, String role){
         var claims = new HashMap<String, Object>();

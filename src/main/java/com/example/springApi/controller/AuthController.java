@@ -1,8 +1,11 @@
 package com.example.springApi.controller;
 
+import com.example.springApi.Model.UserModel;
+import com.example.springApi.Repositories.UserRepository;
 import com.example.springApi.dto.AuthRequestDto;
 import com.example.springApi.service.JwtUtilService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,21 +24,23 @@ public class AuthController {
     private UserDetailsService userDetailsService;
     @Autowired
     private JwtUtilService jwtUtilService;
+    @Autowired
+    private UserRepository userRepository;
+
     @PostMapping("/login")
     public ResponseEntity<?> auth(@RequestBody AuthRequestDto authRequestDto){
         try{
             this.authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequestDto.getEmail(), authRequestDto.getPassword()));
-
             //Validar User en Bd
             UserDetails userDetails =  this.userDetailsService.loadUserByUsername(authRequestDto.getEmail());
             //Generar Token
-            String jwt = this.jwtUtilService.generateToken(userDetails, "default");
-            System.out.println(userDetails.getUsername());
-            return new ResponseEntity<>(jwt, org.springframework.http.HttpStatus.OK);
+            UserModel user = userRepository.findByEmail(authRequestDto.getEmail());
+            String jwt = this.jwtUtilService.generateToken(userDetails, user.getRole());
+            return new ResponseEntity<>("token: " + jwt, org.springframework.http.HttpStatus.OK);
         }catch(Exception e){
             UserDetails userDetails =  this.userDetailsService.loadUserByUsername(authRequestDto.getEmail());
             System.out.println(userDetails.getUsername());
-            return new ResponseEntity<>("Invalid credentials", org.springframework.http.HttpStatus.FORBIDDEN);
+            return new ResponseEntity<>(e.toString() + " Credenciales Invalidas", HttpStatus.FORBIDDEN);
         }
     }
 }
