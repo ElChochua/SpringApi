@@ -3,6 +3,7 @@ package com.example.springApi.controller;
 import com.example.springApi.Model.UserModel;
 import com.example.springApi.Repositories.UserRepository;
 import com.example.springApi.dto.AuthRequestDto;
+import com.example.springApi.dto.AuthResponseDto;
 import com.example.springApi.service.JwtUtilService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -36,7 +37,12 @@ public class AuthController {
             //Generar Token
             UserModel user = userRepository.findByEmail(authRequestDto.getEmail());
             String jwt = this.jwtUtilService.generateToken(userDetails, user.getRole());
-            return new ResponseEntity<>("token: " + jwt, org.springframework.http.HttpStatus.OK);
+            String refreshToken = this.jwtUtilService.generateRefreshToken(userDetails, user.getRole());
+            AuthResponseDto authResponseDto = new AuthResponseDto();
+            authResponseDto.setToken(jwt);
+            authResponseDto.setTokenRefresh(refreshToken);
+
+            return new ResponseEntity<>(authResponseDto, org.springframework.http.HttpStatus.OK);
         }catch(Exception e){
             UserDetails userDetails =  this.userDetailsService.loadUserByUsername(authRequestDto.getEmail());
             System.out.println(userDetails.getUsername());
