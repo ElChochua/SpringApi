@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 @CrossOrigin
-@RequestMapping("api/v1/admin")
+@RequestMapping("api/v1/superadmin")
 public class SuperAdminController {
     @Autowired
     private UserRepository userRepository;
@@ -28,5 +28,9 @@ public class SuperAdminController {
             return ResponseEntity.badRequest().body( e.toString() + "No se pudo registrar el usuario");
         }
         return ResponseEntity.ok(user.toString());
+    }
+    @PostMapping("/test")
+    public ResponseEntity<?> test(){
+        return ResponseEntity.ok("Test");
     }
 }

@@ -25,6 +25,11 @@ public class SecurityConfig {
                 .cors(withDefaults())
                 .csrf(crf -> crf.disable())
                 .authorizeHttpRequests((authorize) -> authorize.
+                        requestMatchers("/api/v1/admin/**").hasAuthority("Admin").
+                        requestMatchers("/api/v1/user/**").hasAuthority("User").
+                        requestMatchers("/api/v1/borrower/**").hasAuthority("Borrower").
+                        requestMatchers("/api/v1/staff/**").hasAuthority("Staff").
+                        requestMatchers("/api/v1/superadmin/**").hasAuthority("SUPER_ADMIN").
                         requestMatchers("/api/v1/auth/**").permitAll().anyRequest().authenticated())
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

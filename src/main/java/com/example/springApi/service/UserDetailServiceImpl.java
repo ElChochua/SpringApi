@@ -25,7 +25,6 @@ public class UserDetailServiceImpl implements UserDetailsService {
         if(user == null){
             throw new UsernameNotFoundException("Email no encontrado");
         }
-        System.out.println(getAuthority(user.getRole()));
         return new User(user.getEmail(), user.getPassword(), getAuthority(user.getRole()));
     }
     private Set<GrantedAuthority> getAuthority(String role) {
