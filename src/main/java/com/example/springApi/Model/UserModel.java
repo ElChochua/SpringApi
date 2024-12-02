@@ -7,6 +7,8 @@ import lombok.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Setter
+@Getter
 @Entity
 public class UserModel {
     @Id
@@ -14,6 +16,5 @@ public class UserModel {
     String User;
     String Email;
     String Password;
-    String Token;
     String Role;
 }

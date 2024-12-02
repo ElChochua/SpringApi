@@ -1,4 +1,4 @@
-package com.example.springApi.dto;
+package com.example.springApi.dto.authDto;
 
 import lombok.Data;
 
