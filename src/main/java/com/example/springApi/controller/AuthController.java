@@ -50,7 +50,9 @@ public class AuthController {
             String refreshToken = this.jwtUtilService.generateRefreshToken(userDetails, user.getRole());
             AuthResponseDto authResponseDto = new AuthResponseDto();
             authResponseDto.setToken(jwt);
-            authResponseDto.setTokenRefresh(refreshToken);
+            authResponseDto.setRefreshToken(refreshToken);
+            authResponseDto.setUser(this.userRepository.findByUserName(user.getUser()));
+
             return new ResponseEntity<>(authResponseDto, org.springframework.http.HttpStatus.OK);
         }catch(Exception e){
             if(e.toString().contains("Incorrect result size: expected 1, actual 0")){
@@ -68,7 +70,7 @@ public class AuthController {
             String refreshToken = this.jwtUtilService.generateRefreshToken(userDetails, user.getRole());
             AuthResponseDto authResponseDto = new AuthResponseDto();
             authResponseDto.setToken(jwt);
-            authResponseDto.setTokenRefresh(refreshToken);
+            authResponseDto.setRefreshToken(refreshToken);
             return new ResponseEntity<>(authResponseDto, org.springframework.http.HttpStatus.OK);
         }catch(Exception e){
             return new ResponseEntity<>(e + " Error al refrescar", HttpStatus.BAD_REQUEST);
@@ -85,10 +87,5 @@ public class AuthController {
             return ResponseEntity.badRequest().body(e.toString() + "No se pudo registrar el usuario");
         }
         return ResponseEntity.ok(HttpStatus.OK);
-    }
-    @GetMapping("/unassigned-users")
-    public ResponseEntity<?> getUnassignedUsers(){
-        List<UsersDto> users = userRepository.getAllUnassignedUsers();
-        return ResponseEntity.ok(users);
     }
 }

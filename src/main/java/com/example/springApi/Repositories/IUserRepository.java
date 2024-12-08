@@ -8,4 +8,5 @@ public interface IUserRepository {
     UserModel findByUser(String user);
     UserModel findByEmail(String email);
     void saveUser(UserModel user);
+
 }

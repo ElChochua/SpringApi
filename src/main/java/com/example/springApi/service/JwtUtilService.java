@@ -13,7 +13,7 @@ import java.util.function.Function;
 public class JwtUtilService {
     private static final String SECRET = "TExBVkVfTVVZX1NFQ1JFVEzE3Zmxu7BSGSJx72BSBXM";
     private static final long EXPIRATION = 1000*60*30;
-
+    private static final long REFRESH_EXPIRATION = 1000*60*60*24;
     public String generateToken(UserDetails userDetails, String role){
         var claims = new HashMap<String, Object>();
         claims.put("role",role);
@@ -29,7 +29,7 @@ public class JwtUtilService {
                 .setClaims(claims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
+                .setExpiration(new Date(System.currentTimeMillis() + REFRESH_EXPIRATION))
                 .signWith(SignatureAlgorithm.HS256, SECRET)
                 .compact();
     }
