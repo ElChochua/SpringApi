@@ -29,8 +29,6 @@ public class UserDetailServiceImpl implements UserDetailsService {
             throw new UsernameNotFoundException("Email no encontrado");
         }
         Set<GrantedAuthority> grantedAuthorities = getAuthority(user.getRole());
-        loger.info("User role {}", user.getRole());
-        loger.info("Granted Authorities {}", grantedAuthorities);
         return new User(user.getEmail(), user.getPassword(), grantedAuthorities);
     }
     private Set<GrantedAuthority> getAuthority(String role) {

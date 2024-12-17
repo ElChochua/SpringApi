@@ -42,7 +42,7 @@ public class JwtUtilService {
         Claims claims = Jwts.parser().setSigningKey(SECRET).build().parseClaimsJws(token).getBody();
         return claimsResolver.apply(claims);
     }
-    public String extractUsername(String token){
+    public String extractEmail(String token){
         return extractClaims(token, Claims::getSubject);
     }
 }

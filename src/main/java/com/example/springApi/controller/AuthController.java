@@ -2,10 +2,10 @@ package com.example.springApi.controller;
 
 import com.example.springApi.Model.UserModel;
 import com.example.springApi.Repositories.UserRepository;
-import com.example.springApi.dto.authDto.AuthRequestDto;
-import com.example.springApi.dto.authDto.AuthResponseDto;
-import com.example.springApi.dto.authDto.RegisterDto;
-import com.example.springApi.dto.authDto.UsersDtos.UsersDto;
+import com.example.springApi.Dtos.AuthRequestDto;
+import com.example.springApi.Dtos.LoginDto;
+import com.example.springApi.Dtos.RefreshTokenDto;
+import com.example.springApi.Dtos.RegisterDto;
 import com.example.springApi.service.JwtUtilService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,12 +17,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("api/v1/auth")
@@ -48,12 +47,12 @@ public class AuthController {
             UserModel user = userRepository.findByEmail(authRequestDto.getEmail());
             String jwt = this.jwtUtilService.generateToken(userDetails, user.getRole());
             String refreshToken = this.jwtUtilService.generateRefreshToken(userDetails, user.getRole());
-            AuthResponseDto authResponseDto = new AuthResponseDto();
-            authResponseDto.setToken(jwt);
-            authResponseDto.setRefreshToken(refreshToken);
-            authResponseDto.setUser(this.userRepository.findByUserName(user.getUser()));
+            LoginDto loginDto = new LoginDto();
+            loginDto.setToken(jwt);
+            loginDto.setRefreshToken(refreshToken);
+            loginDto.setUser(this.userRepository.findByUserName(user.getUser()));
 
-            return new ResponseEntity<>(authResponseDto, org.springframework.http.HttpStatus.OK);
+            return new ResponseEntity<>(loginDto, org.springframework.http.HttpStatus.OK);
         }catch(Exception e){
             if(e.toString().contains("Incorrect result size: expected 1, actual 0")){
                 return new ResponseEntity<>( " Usuario no encontrado", HttpStatus.NOT_FOUND);
@@ -62,16 +61,23 @@ public class AuthController {
         }
     }
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestBody AuthRequestDto authRequestDto){
+    public ResponseEntity<?> refresh(@RequestBody Map<String, String> request){
+        String refreshToken = request.get("refreshToken");
+        loger.info("Refresh Token: " + refreshToken);
         try{
-            UserDetails userDetails =  this.userDetailsService.loadUserByUsername(authRequestDto.getEmail());
-            UserModel user = userRepository.findByEmail(authRequestDto.getEmail());
-            String jwt = this.jwtUtilService.generateToken(userDetails, user.getRole());
-            String refreshToken = this.jwtUtilService.generateRefreshToken(userDetails, user.getRole());
-            AuthResponseDto authResponseDto = new AuthResponseDto();
-            authResponseDto.setToken(jwt);
-            authResponseDto.setRefreshToken(refreshToken);
-            return new ResponseEntity<>(authResponseDto, org.springframework.http.HttpStatus.OK);
+           String email = this.jwtUtilService.extractEmail(refreshToken);
+            UserDetails userDetails =  this.userDetailsService.loadUserByUsername(email);
+            UserModel user = userRepository.findByEmail(email);
+            if(jwtUtilService.validateToken(refreshToken, userDetails)) {
+                String newJwt = jwtUtilService.generateToken(userDetails, user.getRole());
+                String newRefreshToken = jwtUtilService.generateRefreshToken(userDetails, user.getRole());
+                RefreshTokenDto refresResponse = new RefreshTokenDto();
+                refresResponse.setToken(newJwt);
+                refresResponse.setRefreshToken(newRefreshToken);
+                return new ResponseEntity<>(refresResponse, org.springframework.http.HttpStatus.OK);
+            }else{
+                return new ResponseEntity<>("Token invalido", HttpStatus.UNAUTHORIZED);
+            }
         }catch(Exception e){
             return new ResponseEntity<>(e + " Error al refrescar", HttpStatus.BAD_REQUEST);
         }

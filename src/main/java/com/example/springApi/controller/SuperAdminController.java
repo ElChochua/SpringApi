@@ -3,8 +3,9 @@ package com.example.springApi.controller;
 import com.example.springApi.Model.UserModel;
 import com.example.springApi.Repositories.OrganizationRepository;
 import com.example.springApi.Repositories.UserRepository;
-import com.example.springApi.dto.authDto.ResponseDto;
-import com.example.springApi.dto.authDto.UsersDtos.UsersDto;
+import com.example.springApi.Dtos.ResponseDto;
+import com.example.springApi.Dtos.UsersDtos.UserDetailDto;
+import com.example.springApi.Dtos.UsersDtos.UsersDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -43,6 +44,14 @@ public class SuperAdminController {
         }
         return ResponseEntity.ok(users);
     }
+    @GetMapping("/get-all-users-details")
+    public ResponseEntity<?> getAllUsersDetails(){
+        List<UserDetailDto> users = userRepository.getAllUsersDetails();
+        if(users.isEmpty()){
+            return ResponseEntity.badRequest().body("No hay usuarios disponibles");
+        }
+        return ResponseEntity.ok(users);
+    }
     @GetMapping("/get-users-unassigned")
     public ResponseEntity<?> getUsers(){
         List<UsersDto> users = userRepository.getAllUnassignedUsers();
@@ -50,6 +59,14 @@ public class SuperAdminController {
             return ResponseEntity.badRequest().body("No hay usuarios disponibles");
         }
         return ResponseEntity.ok(users);
+    }
+    @DeleteMapping("/delete-user/{user_id}")
+    public ResponseEntity<?> deleteUser(@PathVariable int user_id){
+        ResponseDto response = userRepository.deleteUserById(user_id);
+        if(response.getCode() != 200){
+            return ResponseEntity.badRequest().body(response);
+        }
+        return ResponseEntity.ok(response);
     }
     @PutMapping("/delete-organization/{organization_id}")
     public ResponseEntity<?> deleteOrganization(@PathVariable int organization_id){

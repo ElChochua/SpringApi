@@ -1,4 +1,4 @@
-package com.example.springApi.dto.authDto.UsersDtos;
+package com.example.springApi.Dtos.UsersDtos;
 
 import lombok.Data;
 import lombok.Getter;
