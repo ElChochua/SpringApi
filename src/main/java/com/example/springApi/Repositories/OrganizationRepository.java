@@ -1,11 +1,9 @@
 package com.example.springApi.Repositories;
 import com.example.springApi.Dtos.ResponseDto;
 import com.example.springApi.Dtos.UsersDtos.UserDetailDto;
-import com.example.springApi.Dtos.UsersDtos.UsersDto;
-import com.example.springApi.Dtos.organizationsDtos.OrganizationDetailsDto;
-import com.example.springApi.Dtos.organizationsDtos.OrganizationDto;
-import com.example.springApi.Dtos.organizationsDtos.OrganizationMemberDto;
-import com.example.springApi.Dtos.organizationsDtos.OrganizationRegisterDto;
+import com.example.springApi.Dtos.organizationsDtos.*;
+import com.example.springApi.RowMappers.OrganizationMemberMapperRow;
+import com.example.springApi.RowMappers.UserCustomDetailMapperRow;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -132,11 +130,19 @@ public class OrganizationRepository {
             };
         return jdbcTemplate.query(Query, rowMapper);
     }
-    public ResponseDto addUserToOrganization(OrganizationMemberDto organizationMember){
+
+    public ResponseDto addUserToOrganization(AddOrganizationMemberDto addOrganizationMemberDto){
         try {
-            String Query = "INSERT INTO organization_members(organization_id, user_id) VALUES (?,?,?)";
-            jdbcTemplate.update(Query, organizationMember.getOrganization_id(), organizationMember.getUser_id(), organizationMember.getRole());
-            updateTotalMembers(organizationMember.getOrganization_id());
+            System.out.println(addOrganizationMemberDto.getOrganization_id() + " " + addOrganizationMemberDto.getUser_id());
+            if(addOrganizationMemberDto.getRole() == null){
+                addOrganizationMemberDto.setRole("member");
+            }
+
+            System.out.println(addOrganizationMemberDto.getRole() + " " + addOrganizationMemberDto.getOrganization_id() + " " + addOrganizationMemberDto.getUser_id());
+            String Query = "INSERT INTO organizations_members(organization_ID, User_ID) VALUES (?,?)";
+            jdbcTemplate.update(Query, addOrganizationMemberDto.getOrganization_id(), addOrganizationMemberDto.getUser_id());
+
+            updateTotalMembers(addOrganizationMemberDto.getOrganization_id());
         } catch (Exception e) {
             return new ResponseDto("User could not be added to organization Error: " + e.toString(), 500);
         }
@@ -144,7 +150,7 @@ public class OrganizationRepository {
     }
     public ResponseDto updateOrganizationStatus(int organization_id, String status){
         try {
-            String Query = "UPDATE organizations SET status = ? WHERE organization_id = ?";
+            String Query = "UPDATE organizations_details SET status = ? WHERE organization_id = ?";
             jdbcTemplate.update(Query, status, organization_id);
         } catch (Exception e) {
             return new ResponseDto("Organization status could not be updated Error: " + e.toString(), 500);
@@ -180,10 +186,6 @@ public class OrganizationRepository {
         }
         return new ResponseDto("User deleted from organization",200);
     }
-    public List<UserDetailDto> getAllUsersOutOfOrganization(int organization_id){
-        String Query = "SELECT * FROM user_detail WHERE user_id NOT IN (SELECT user_id FROM organizations_members WHERE organization_id = ?)";
-        return jdbcTemplate.query(Query, new UserDetailCustomRowMapper(), organization_id);
-    }
     public ResponseDto updateMemberRole(OrganizationMemberDto organizationMember){
         String Query = "UPDATE organizations_members SET role = ? WHERE organization_id = ? AND user_id = ?";
         try {
@@ -204,41 +206,85 @@ public class OrganizationRepository {
         return new ResponseDto("Member deleted successfully",200);
     }
     public ResponseDto removeMemberFromOrganization(int organization_id, int user_id){
-        String Query = "DELETE FROM organizations_members WHERE organization_id = ? AND user_id = ?";
         try {
-            updateTotalMembers(organization_id);
+        String Query = "DELETE FROM organizations_members WHERE organization_id = ? AND user_id = ?";
             jdbcTemplate.update(Query, organization_id, user_id);
         } catch (Exception e) {
             return new ResponseDto("Member could not be deleted Error: " + e.toString(), 500);
         }
+        updateTotalMembers(organization_id);
         return new ResponseDto("Member deleted successfully",200);
     }
-    public List<UserDetailDto> getAllOrganizationMembers(int organization_id){
-        String Query = "SELECT * FROM organizations_members WHERE organization_id = ?";
-        return jdbcTemplate.query(Query, new UserDetailCustomRowMapper(), organization_id);
+    public List<OrganizationMemberDto> getAllOrganizationMembers(int organization_id){
+        String Query ="WITH RankedUsers AS (\n" +
+                "    SELECT\n" +
+                "        ud.user_id,\n" +
+                "        ud.name,\n" +
+                "        ud.email,\n" +
+                "        om.role,\n" +
+                "        om.status,\n" +
+                "        om.organization_ID,\n" +
+                "        ROW_NUMBER() OVER (PARTITION BY ud.user_id ORDER BY om.role ASC) AS row_num\n" +
+                "    FROM user_detail ud\n" +
+                "             LEFT JOIN organizations_members om ON ud.user_id = om.User_ID\n" +
+                "    WHERE om.organization_ID IS NULL OR om.organization_ID = ?\n" +
+                ")\n" +
+                "SELECT user_id, name, email, role, status, organization_ID\n" +
+                "FROM RankedUsers\n" +
+                "WHERE row_num = 1\n" +
+                "\n" +
+                "UNION\n" +
+                "\n" +
+                "SELECT\n" +
+                "    ud.user_id,\n" +
+                "    ud.name,\n" +
+                "    ud.email,\n" +
+                "    NULL as role,\n" +
+                "    NULL as status,\n" +
+                "    NULL as organization_ID\n" +
+                "FROM user_detail ud\n" +
+                "         LEFT JOIN organizations_members om ON ud.user_id = om.User_ID\n" +
+                "WHERE om.User_ID IS NULL";        return jdbcTemplate.query(Query, new OrganizationMemberMapperRow(), organization_id);
     }
+    public List<OrganizationMemberDto> getAllUsersOutOfOrganization(int organization_id){
+        String Query ="WITH RankedUsers AS (\n" +
+                "    SELECT\n" +
+                "        ud.user_id,\n" +
+                "        ud.name,\n" +
+                "        ud.email,\n" +
+                "        om.role,\n" +
+                "        om.status,\n" +
+                "        om.organization_ID,\n" +
+                "        ROW_NUMBER() OVER (PARTITION BY ud.user_id ORDER BY om.role ASC) AS row_num\n" +
+                "    FROM user_detail ud\n" +
+                "             LEFT JOIN organizations_members om ON ud.user_id = om.User_ID\n" +
+                "    WHERE om.organization_ID IS NULL OR om.organization_ID <> ?\n" +
+                ")\n" +
+                "SELECT user_id, name, email, role, status, organization_ID\n" +
+                "FROM RankedUsers\n" +
+                "WHERE row_num = 1\n" +
+                "\n" +
+                "UNION\n" +
+                "\n" +
+                "SELECT\n" +
+                "    ud.user_id,\n" +
+                "    ud.name,\n" +
+                "    ud.email,\n" +
+                "    NULL as role,\n" +
+                "    NULL as status,\n" +
+                "    NULL as organization_ID\n" +
+                "FROM user_detail ud\n" +
+                "         LEFT JOIN organizations_members om ON ud.user_id = om.User_ID\n" +
+                "WHERE om.User_ID IS NULL";
+
+        return jdbcTemplate.query(Query, new OrganizationMemberMapperRow(), organization_id);
+}
     public void updateTotalMembers(int organization_id){
-        String Query = "call update_total_members(?)";
+        String Query = "call update_members_count(?)";
         SimpleJdbcCall simpleJdbcCall = new SimpleJdbcCall(jdbcTemplate).withProcedureName("update_members_count");
         Map<String, Object> param = new HashMap<>();
         param.put("org_id", organization_id);
         simpleJdbcCall.execute(param);
         jdbcTemplate.update(Query, organization_id);
-    }
-}
-class UserDetailCustomRowMapper implements RowMapper<UserDetailDto>{
-    @Override
-    public UserDetailDto mapRow(ResultSet rs, int rowNum) throws SQLException {
-        UserDetailDto user = new UserDetailDto();
-        user.setUser_id(rs.getInt("user_id"));
-        user.setUser_name(rs.getString("user_name"));
-        user.setEmail(rs.getString("email"));
-        user.setName(rs.getString("name"));
-        user.setLast_name(rs.getString("last_name"));
-        user.setBirthdate(rs.getString("birthdate"));
-        user.setStatus(rs.getString("status"));
-        user.setCreated_at(rs.getString("created_at"));
-        user.setPhone_number(rs.getString("phone_number"));
-        return user;
     }
 }

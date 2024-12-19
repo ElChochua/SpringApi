@@ -50,7 +50,7 @@ public class LoanRepository implements ILoanInterface {
         String sql = "INSERT INTO loans(organization_id, loan_applicant_id, amount, interest_rate, term_value, term_unit, issued_at, due_at, purpose, currency, total_amount_due) " +
                         "VALUES(?,?,?,?,?,?,?,?,?,?,?)";
         try {
-            UserCreditsDto userCredits = getUserCredits(loan.getLoan_applicant_id());
+            UserCreditsDto userCredits = getUserCredits(loan.getLoan_applicant_id(), loan.getOrganization_id());
             if(userCredits.getAvailable_credit() < loan.getAmount()){
                 return new ResponseDto("Insufficient credit", 400);
             }
@@ -64,9 +64,12 @@ public class LoanRepository implements ILoanInterface {
                     loan.getAmount(), loan.getInterest_rate(), loan.getTerm_value(), loan.getTerm_unit(),
                     loan.getIssued_at(), loan.getDue_at(), loan.getPurpose(), loan.getCurrency(),
                     loan.getTotal_amount_due());
+            System.out.println("Antes de actualizar"+ userCredits.getAvailable_credit());
             userCredits.setAvailable_credit(userCredits.getAvailable_credit() - loan.getAmount());
-            updateUserCredits(userCredits);
+            System.out.println("Despues de actualizar" + userCredits.getAvailable_credit());
+            updateUserCredits(userCredits, loan.getOrganization_id());
         }catch (Exception e){
+            System.out.println(e);
             return new ResponseDto("Loan registration failed" + e, 400);
         }
         return new ResponseDto("Loan registered successfully", 200);
@@ -74,22 +77,23 @@ public class LoanRepository implements ILoanInterface {
     public String calculateEndDate(int term_value, String term_unit){
         LocalDate date = LocalDate.now();
         return switch (term_unit.toLowerCase()) {
-            case "days" -> date.plusDays(term_value).toString();
+            case "day" -> date.plusDays(term_value).toString();
             case "month" -> date.plusMonths(term_value).toString();
             case "year" -> date.plusYears(term_value).toString();
             default -> throw new IllegalArgumentException("Invalid term unit");
         };
     }
-    public UserCreditsDto getUserCredits(int user_id){
-        String sql = "SELECT * FROM user_credits WHERE User_ID = ?";
-        return jdbcTemplate.queryForObject(sql, new UserCreditsCustomMapperRow(), user_id);
+    public UserCreditsDto getUserCredits(int user_id, int organization_id){
+        String sql = "SELECT * FROM user_credits WHERE User_ID = ? AND organization_id = ?";
+        return jdbcTemplate.queryForObject(sql, new UserCreditsCustomMapperRow(), user_id, organization_id);
     }
-    public ResponseDto updateUserCredits(UserCreditsDto userCredits){
-        String sql = "UPDATE user_credits SET credit_score = ?, credit_limit = ?, credit_available = ? WHERE user_id = ?";
+    public ResponseDto updateUserCredits(UserCreditsDto userCredits, int organization_id){
+        String sql = "UPDATE user_credits SET credit_score = ?, credit_limit = ?, credit_available = ? WHERE user_id = ? AND organization_id = ?";
         try {
-            jdbcTemplate.update(sql, userCredits.getCredit_score(), userCredits.getCredit_limit(), userCredits.getAvailable_credit(), userCredits.getUser_ID());
+            jdbcTemplate.update(sql, userCredits.getCredit_score(), userCredits.getCredit_limit(), userCredits.getAvailable_credit(), userCredits.getUser_ID(), organization_id);
+            System.out.println("Credito actualizado");
         }catch (Exception e){
-            return new ResponseDto("Update failed", 400);
+            return new ResponseDto("Update failed" + e, 400);
         }
         return new ResponseDto("Update successful", 200);
     }
@@ -103,11 +107,11 @@ public class LoanRepository implements ILoanInterface {
         return new ResponseDto("Loan approved", 200);
     }
     public ResponseDto rejectLoan(int loan_id) {
-        String sql = "UPDATE loans SET status = 'rejected' WHERE loan_id = ?";
+        String sql = "UPDATE loans SET status = 'declined', approved_at = ? WHERE loan_id = ?";
         try {
-            jdbcTemplate.update(sql, loan_id);
+            jdbcTemplate.update(sql, LocalDate.now().toString(), loan_id);
         }catch (Exception e){
-            return new ResponseDto("Rejection failed", 400);
+            return new ResponseDto("Rejection failed" + e, 400);
         }
         return new ResponseDto("Loan rejected", 200);
     }
@@ -135,6 +139,10 @@ public class LoanRepository implements ILoanInterface {
         String sql = "SELECT * FROM loans WHERE loan_applicant_id = ? AND status = 'approved'";
         return jdbcTemplate.query(sql, new LoanCustomMapperRow(), user_id);
     }
+    public List<UserCreditsDto> getAllCreditsByUser(int user_id) {
+        String sql = "SELECT * FROM user_credits WHERE user_id = ?";
+        return jdbcTemplate.query(sql, new UserCreditsCustomMapperRow());
+    }
 }
 class LoanCustomMapperRow implements RowMapper<LoanDto>{
     @Override
@@ -156,6 +164,7 @@ class LoanCustomMapperRow implements RowMapper<LoanDto>{
         loan.setApproved_at(rs.getString("approved_at"));
         return loan;
     }
+
 }
 
 class UserCreditsCustomMapperRow implements RowMapper<UserCreditsDto>{

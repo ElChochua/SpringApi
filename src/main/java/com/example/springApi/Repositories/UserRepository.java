@@ -5,6 +5,7 @@ import com.example.springApi.Dtos.RegisterDto;
 import com.example.springApi.Dtos.ResponseDto;
 import com.example.springApi.Dtos.UsersDtos.UserDetailDto;
 import com.example.springApi.Dtos.UsersDtos.UsersDto;
+import com.example.springApi.RowMappers.UserCustomDetailMapperRow;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -65,7 +66,7 @@ public class UserRepository implements IUserRepository{
         return jdbcTemplate.query(Query, new UserCustomMapperRow());
     }
     public List<UserDetailDto> getAllUsersDetails(){
-        String Query = "SELECT ud.user_id, ud.user_name, ud.email, ud.status, ud.created_at, u.role from  user_detail ud join users u on ud.user_id = u.User_ID";
+        String Query = "SELECT ud.user_id, ud.user_name,ud.name,ud.last_name,ud.birthdate,ud.curp,ud.phone_number, ud.email, ud.status, ud.created_at, u.role from  user_detail ud join users u on ud.user_id = u.User_ID AND u.role != 'SUPER_ADMIN'";
         return jdbcTemplate.query(Query, new UserCustomDetailMapperRow());
     }
 }
@@ -78,31 +79,6 @@ class UserCustomMapperRow implements RowMapper<UsersDto>{
         user.setUser(rs.getString("user"));
         user.setEmail(rs.getString("email"));
         user.setRole(rs.getString("role"));
-        return user;
-    }
-}
-class UserCustomDetailMapperRow implements RowMapper<UserDetailDto>{
-    @Override
-    public UserDetailDto mapRow(ResultSet rs, int rowNum) throws SQLException {
-//        private int user_id;
-//        private String user_name;
-//        private String email;
-//        private String name;
-//        private String last_name;
-//        private String birthdate;
-//        private String status;
-//        private String created_at;
-//        private String phone;
-        UserDetailDto user = new UserDetailDto();
-        user.setUser_id(rs.getInt("user_id"));
-        user.setUser_name(rs.getString("user_name"));
-        user.setEmail(rs.getString("email"));
-        user.setName(rs.getString("name"));
-        user.setLast_name(rs.getString("last_name"));
-        user.setBirthdate(rs.getString("birthdate"));
-        user.setStatus(rs.getString("status"));
-        user.setCreated_at(rs.getString("created_at"));
-        user.setPhone_number(rs.getString("phone"));
         return user;
     }
 }

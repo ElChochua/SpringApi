@@ -1,7 +1,10 @@
 package com.example.springApi.controller;
 
 import com.example.springApi.Dtos.LoanDtos.LoanDto;
+import com.example.springApi.Dtos.ResponseDto;
+import com.example.springApi.Dtos.UserCreditsDtos.UserCreditsDto;
 import com.example.springApi.Repositories.LoanRepository;
+import org.apache.coyote.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,7 +63,12 @@ public class LoanController {
     }
     @PostMapping("/reject-loan/{loan_id}")
     public ResponseEntity<?> rejectLoan(@PathVariable("loan_id") int loanId){
-        return ResponseEntity.ok(loanRepository.rejectLoan(loanId));
+        System.out.println(loanId);
+        ResponseDto response = loanRepository.rejectLoan(loanId);
+        if(response.getCode() != 200){
+            return ResponseEntity.badRequest().body(response);
+        }
+        return ResponseEntity.ok(response);
     }
     @GetMapping("/get-loan-by-id/{loan_id}")
     public ResponseEntity<?> getLoanById(@PathVariable("loan_id") int loanId){
@@ -104,7 +112,27 @@ public class LoanController {
     }
     @PostMapping("/loan-apply")
     public ResponseEntity<?> loanApply(@RequestBody LoanDto loan){
-        return ResponseEntity.ok(loanRepository.registerLoan(loan));
+        ResponseDto response = loanRepository.registerLoan(loan);
+        if(response.getCode() != 200){
+            return ResponseEntity.badRequest().body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/get-loans-by-organization/{organization_id}")
+    public ResponseEntity<?> getLoansByOrganization(@PathVariable("organization_id") int organizationId){
+        List<LoanDto> loans = loanRepository.getLoansByOrganization(organizationId);
+        if(loans.isEmpty()){
+            return ResponseEntity.badRequest().body("No loans available");
+        }
+        return ResponseEntity.ok(loans);
+    }
+    @GetMapping("/get-all-credits-by-user/{user_id}")
+    public ResponseEntity<?> getAllCreditsByUser(@PathVariable("user_id") int userId){
+        List<UserCreditsDto> credits = loanRepository.getAllCreditsByUser(userId);
+        if(credits.isEmpty()){
+            return ResponseEntity.badRequest().body("No loans available");
+        }
+        return ResponseEntity.ok(credits);
     }
 
 }

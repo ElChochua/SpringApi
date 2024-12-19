@@ -1,24 +1,24 @@
 package com.example.springApi.controller;
 
 import com.example.springApi.Dtos.UsersDtos.UserDetailDto;
-import com.example.springApi.Dtos.organizationsDtos.OrganizationMemberDto;
+import com.example.springApi.Dtos.organizationsDtos.*;
 import com.example.springApi.Repositories.OrganizationRepository;
 import com.example.springApi.Dtos.ResponseDto;
-import com.example.springApi.Dtos.organizationsDtos.OrganizationDetailsDto;
-import com.example.springApi.Dtos.organizationsDtos.OrganizationDto;
-import com.example.springApi.Dtos.organizationsDtos.OrganizationRegisterDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 @Controller
 @RequestMapping("api/v1/organization")
 public class OrganizationController {
     @Autowired
     OrganizationRepository organizationRepository;
+    Logger logger = Logger.getLogger(OrganizationController.class.getName());
     @PostMapping("/register-organization")
     public ResponseEntity<?> registerOrganization(@RequestBody OrganizationRegisterDto organization){
         ResponseDto response = organizationRepository.registerOrganization(organization);
@@ -68,8 +68,8 @@ public class OrganizationController {
         return ResponseEntity.ok(organizations);
     }
     @PostMapping("/add-user-to-organization")
-    public ResponseEntity<?> addUserToOrganization(@RequestBody OrganizationMemberDto organizationMemberDto){
-        ResponseDto response = organizationRepository.addUserToOrganization(organizationMemberDto);
+    public ResponseEntity<?> addUserToOrganization(@RequestBody AddOrganizationMemberDto addOrganizationMemberDto){
+        ResponseDto response = organizationRepository.addUserToOrganization(addOrganizationMemberDto);
         if(response.getCode() != 200){
             return ResponseEntity.badRequest().body(response);
         }
@@ -85,7 +85,10 @@ public class OrganizationController {
         return ResponseEntity.ok(organizations);
     }
     @PutMapping("/update-organization-status")
-    public ResponseEntity<?> updateOrganizationStatus(@RequestBody int organization_id, String status){
+    public ResponseEntity<?> updateOrganizationStatus(@RequestBody Map<String, Object> payload){
+        int organization_id = (int) payload.get("organization_id");
+        String status = (String) payload.get("status");
+        System.out.println(organization_id + " " + status);
         ResponseDto response = organizationRepository.updateOrganizationStatus(organization_id, status);
         if(response.getCode() != 200){
             return ResponseEntity.badRequest().body(response);
@@ -118,7 +121,7 @@ public class OrganizationController {
     }
     @GetMapping("/get-users-outside-organization/{organization_id}")
     public ResponseEntity<?> getUsersOutsideOrganization(@PathVariable int organization_id){
-        List<UserDetailDto> users = organizationRepository.getAllUsersOutOfOrganization(organization_id);
+        List<OrganizationMemberDto> users = organizationRepository.getAllUsersOutOfOrganization(organization_id);
         if(users.isEmpty()){
             return ResponseEntity.badRequest().body("No users available");
         }
@@ -132,9 +135,9 @@ public class OrganizationController {
         }
         return ResponseEntity.ok(response);
     }
-    @PostMapping("/delete-member")
-    public ResponseEntity<?> deleteMember(@RequestBody OrganizationMemberDto organizationMemberDto){
-        ResponseDto response = organizationRepository.removeMemberFromOrganization(organizationMemberDto.getOrganization_id(), organizationMemberDto.getUser_id());
+    @PostMapping("/delete-member-from-organization/{organization_id}/{user_id}")
+    public ResponseEntity<?> deleteMember(@PathVariable int organization_id, @PathVariable int user_id){
+        ResponseDto response = organizationRepository.removeMemberFromOrganization(organization_id, user_id);
         if(response.getCode() != 200){
             return ResponseEntity.badRequest().body(response);
         }
@@ -142,7 +145,7 @@ public class OrganizationController {
     }
     @GetMapping("/get-organization-members/{organization_id}")
     public ResponseEntity<?> getOrganizationMembers(@PathVariable int organization_id){
-        List<UserDetailDto> users = organizationRepository.getAllOrganizationMembers(organization_id);
+        List<OrganizationMemberDto> users = organizationRepository.getAllOrganizationMembers(organization_id);
         if(users.isEmpty()){
             return ResponseEntity.badRequest().body("No users available");
         }
