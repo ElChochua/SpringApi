@@ -1,6 +1,8 @@
 package com.example.springApi.Repositories;
 
 import com.example.springApi.Dtos.LoanDtos.LoanDto;
+import com.example.springApi.Dtos.LoanDtos.PaymentDto;
+import com.example.springApi.Dtos.LoanDtos.TransactionDto;
 import com.example.springApi.Dtos.ResponseDto;
 import com.example.springApi.Dtos.UserCreditsDtos.UserCreditsDto;
 import org.apache.coyote.Response;
@@ -88,7 +90,7 @@ public class LoanRepository implements ILoanInterface {
         return jdbcTemplate.queryForObject(sql, new UserCreditsCustomMapperRow(), user_id, organization_id);
     }
     public ResponseDto updateUserCredits(UserCreditsDto userCredits, int organization_id){
-        String sql = "UPDATE user_credits SET credit_score = ?, credit_limit = ?, credit_available = ? WHERE user_id = ? AND organization_id = ?";
+        String sql = "UPDATE user_credits SET credit_score = ?, credit_limit = ?, available_credit = ? WHERE user_id = ? AND organization_id = ?";
         try {
             jdbcTemplate.update(sql, userCredits.getCredit_score(), userCredits.getCredit_limit(), userCredits.getAvailable_credit(), userCredits.getUser_ID(), organization_id);
             System.out.println("Credito actualizado");
@@ -106,10 +108,33 @@ public class LoanRepository implements ILoanInterface {
         }
         return new ResponseDto("Loan approved", 200);
     }
+    int getLoanAmountById(int loan_id){
+        String sql = "SELECT amount FROM loans WHERE loan_id = ?";
+        return jdbcTemplate.queryForObject(sql, Integer.class, loan_id);
+    }
+    int getDueAmountById(int loan_id){
+        String sql = "SELECT total_amount_due FROM loans WHERE loan_id = ?";
+        return jdbcTemplate.queryForObject(sql, Integer.class, loan_id);
+    }
+    int getLoanApplicantById(int loan_id){
+        String sql = "SELECT loan_applicant_id FROM loans WHERE loan_id = ?";
+        return jdbcTemplate.queryForObject(sql, Integer.class, loan_id);
+    }
+    int getLoanOrganizationById(int loan_id){
+        String sql = "SELECT organization_id FROM loans WHERE loan_id = ?";
+        return jdbcTemplate.queryForObject(sql, Integer.class, loan_id);
+    }
     public ResponseDto rejectLoan(int loan_id) {
         String sql = "UPDATE loans SET status = 'declined', approved_at = ? WHERE loan_id = ?";
         try {
             jdbcTemplate.update(sql, LocalDate.now().toString(), loan_id);
+            int amount = getLoanAmountById(loan_id);
+            int loan_applicant = getLoanApplicantById(loan_id);
+            int loan_organization = getLoanOrganizationById(loan_id);
+            UserCreditsDto userCredits = getUserCredits(loan_applicant, loan_organization);
+            userCredits.setAvailable_credit(userCredits.getAvailable_credit() + amount);
+            updateUserCredits(userCredits, loan_organization);
+
         }catch (Exception e){
             return new ResponseDto("Rejection failed" + e, 400);
         }
@@ -132,7 +157,7 @@ public class LoanRepository implements ILoanInterface {
         return jdbcTemplate.query(sql, new LoanCustomMapperRow(), user_id);
     }
     public List<LoanDto> getAllRejectedLoansByMember(int user_id) {
-        String sql = "SELECT * FROM loans WHERE loan_applicant_id = ? AND status = 'rejected'";
+        String sql = "SELECT * FROM loans WHERE loan_applicant_id = ? AND status = 'declined'";
         return jdbcTemplate.query(sql, new LoanCustomMapperRow(), user_id);
     }
     public List<LoanDto> getAllApprovedLoansByMember(int user_id) {
@@ -140,8 +165,44 @@ public class LoanRepository implements ILoanInterface {
         return jdbcTemplate.query(sql, new LoanCustomMapperRow(), user_id);
     }
     public List<UserCreditsDto> getAllCreditsByUser(int user_id) {
-        String sql = "SELECT * FROM user_credits WHERE user_id = ?";
-        return jdbcTemplate.query(sql, new UserCreditsCustomMapperRow());
+        String sql = "select * from user_credits where User_ID = ?";
+        return jdbcTemplate.query(sql, new UserCreditsCustomMapperRow(), user_id);
+    }
+    public List<LoanDto> getAllActiveLoans() {
+        String sql = "SELECT * FROM loans WHERE status = 'active' OR status = 'approved'";
+        return jdbcTemplate.query(sql, new LoanCustomMapperRow());
+    }
+    public ResponseDto makePayment(PaymentDto paymentDto){
+
+        String uptadeLoan = "UPDATE loans SET total_amount_due = total_amount_due - ? WHERE loan_id = ?";
+        String Query = "insert into transactions (loan_ID, user_ID, transaction_type, amount, description) VALUES(?,?,?,?,?)";
+        int loan_amount = getDueAmountById(paymentDto.getLoan_ID());
+        System.out.println("Loan amount: " + loan_amount);
+        System.out.println("Payment amount: " + paymentDto.getAmount());
+        System.out.println("Loan amount - payment amount: " + (loan_amount - paymentDto.getAmount()));
+        if ((loan_amount - paymentDto.getAmount()) <= 0){
+            String update_loan_status = "UPDATE loans SET status = 'inactive' WHERE loan_id = ?";
+            jdbcTemplate.update(update_loan_status, paymentDto.getLoan_ID());
+        }
+        try{
+            jdbcTemplate.update(Query, paymentDto.getLoan_ID(), paymentDto.getUser_ID(), paymentDto.getTransaction_type(), paymentDto.getAmount(), paymentDto.getDescription());
+            jdbcTemplate.update(uptadeLoan, paymentDto.getAmount(), paymentDto.getLoan_ID());
+        }catch (Exception e){
+            return new ResponseDto("Payment could not be registered", 400);
+        }
+        return new ResponseDto("Payment registered successfully", 200);
+    }
+    public List<TransactionDto> getAllTransactionsByUser(int user_id) {
+        String sql = "SELECT * FROM transactions WHERE user_ID = ?";
+        return jdbcTemplate.query(sql, new TransactionMapperRow(), user_id);
+    }
+    public List<TransactionDto> getAllTransactionsByOwnedOrganizations(int user_id) {
+        String sql = "SELECT t.*\n" +
+                "FROM transactions t\n" +
+                "JOIN loans l ON t.loan_id = l.loan_id\n" +
+                "JOIN organizations o ON l.organization_id = o.organization_id\n" +
+                "WHERE o.owner_id = ?;";
+        return jdbcTemplate.query(sql, new TransactionMapperRow(), user_id);
     }
 }
 class LoanCustomMapperRow implements RowMapper<LoanDto>{
@@ -171,11 +232,26 @@ class UserCreditsCustomMapperRow implements RowMapper<UserCreditsDto>{
     @Override
     public UserCreditsDto mapRow(ResultSet rs, int rowNum) throws SQLException {
         UserCreditsDto userCredits = new UserCreditsDto();
+        userCredits.setCredit_ID(rs.getInt("credit_id"));
         userCredits.setUser_ID(rs.getInt("user_id"));
         userCredits.setOrganization_ID(rs.getInt("organization_id"));
         userCredits.setCredit_score(rs.getInt("credit_score"));
         userCredits.setCredit_limit(rs.getDouble("credit_limit"));
         userCredits.setAvailable_credit(rs.getDouble("available_credit"));
         return userCredits;
+    }
+}
+class TransactionMapperRow implements RowMapper<TransactionDto>{
+    @Override
+    public TransactionDto mapRow(ResultSet rs, int rowNum) throws SQLException {
+        TransactionDto transaction = new TransactionDto();
+        transaction.setTransaction_ID(rs.getInt("transaction_ID"));
+        transaction.setLoan_ID(rs.getInt("loan_ID"));
+        transaction.setUser_ID(rs.getInt("user_ID"));
+        transaction.setTransaction_type(rs.getString("transaction_type"));
+        transaction.setAmount(rs.getDouble("amount"));
+        transaction.setIssued_at(rs.getString("issued_at"));
+        transaction.setDescription(rs.getString("description"));
+        return transaction;
     }
 }

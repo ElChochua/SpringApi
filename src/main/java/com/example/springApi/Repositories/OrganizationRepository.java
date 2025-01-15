@@ -168,7 +168,8 @@ public class OrganizationRepository {
     }
     public ResponseDto deleteOrganization(int organization_id){
         try {
-            String Query = "DELETE FROM organizations WHERE organization_id = ?";
+            System.out.println(organization_id);
+            String Query = "DELETE FROM organizations WHERE organization_ID = ?";
             jdbcTemplate.update(Query, organization_id);
         } catch (Exception e) {
             return new ResponseDto("Organization could not be deleted Error: " + e.toString(), 500);
@@ -178,9 +179,8 @@ public class OrganizationRepository {
     public ResponseDto deleteUserFromOrganization(int organization_id, int user_id){
         try {
             String Query = "DELETE FROM organizations_members WHERE organization_id = ? AND user_id = ? ";
-            updateTotalMembers(organization_id);
             jdbcTemplate.update(Query, organization_id, user_id);
-
+            updateTotalMembers(organization_id);
         } catch (Exception e) {
             return new ResponseDto("User could not be deleted from organization Error: " + e.toString(), 500);
         }
@@ -226,25 +226,13 @@ public class OrganizationRepository {
                 "        om.organization_ID,\n" +
                 "        ROW_NUMBER() OVER (PARTITION BY ud.user_id ORDER BY om.role ASC) AS row_num\n" +
                 "    FROM user_detail ud\n" +
-                "             LEFT JOIN organizations_members om ON ud.user_id = om.User_ID\n" +
-                "    WHERE om.organization_ID IS NULL OR om.organization_ID = ?\n" +
+                "             INNER JOIN organizations_members om ON ud.user_id = om.User_ID\n" +
+                "    WHERE om.organization_ID = ?\n" +
                 ")\n" +
                 "SELECT user_id, name, email, role, status, organization_ID\n" +
                 "FROM RankedUsers\n" +
-                "WHERE row_num = 1\n" +
-                "\n" +
-                "UNION\n" +
-                "\n" +
-                "SELECT\n" +
-                "    ud.user_id,\n" +
-                "    ud.name,\n" +
-                "    ud.email,\n" +
-                "    NULL as role,\n" +
-                "    NULL as status,\n" +
-                "    NULL as organization_ID\n" +
-                "FROM user_detail ud\n" +
-                "         LEFT JOIN organizations_members om ON ud.user_id = om.User_ID\n" +
-                "WHERE om.User_ID IS NULL";        return jdbcTemplate.query(Query, new OrganizationMemberMapperRow(), organization_id);
+                "WHERE row_num = 1;\n";
+        return jdbcTemplate.query(Query, new OrganizationMemberMapperRow(), organization_id);
     }
     public List<OrganizationMemberDto> getAllUsersOutOfOrganization(int organization_id){
         String Query ="WITH RankedUsers AS (\n" +

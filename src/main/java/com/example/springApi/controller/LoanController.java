@@ -1,6 +1,7 @@
 package com.example.springApi.controller;
 
 import com.example.springApi.Dtos.LoanDtos.LoanDto;
+import com.example.springApi.Dtos.LoanDtos.PaymentDto;
 import com.example.springApi.Dtos.ResponseDto;
 import com.example.springApi.Dtos.UserCreditsDtos.UserCreditsDto;
 import com.example.springApi.Repositories.LoanRepository;
@@ -29,14 +30,16 @@ public class LoanController {
         }
         return ResponseEntity.ok(loans);
     }
+    /*
     @GetMapping("/get-loans-by-id/{loan_id}")
     public ResponseEntity<?> getLoansById(@PathVariable("loan_id") int loanId){
-        List<LoanDto> loans = loanRepository.getLoansByApplicant(loanId);
+        List<LoanDto> loans = loanRepository.getLoansByLoanID(loanId);
         if(loans.isEmpty()){
             return ResponseEntity.badRequest().body("No loans available");
         }
         return ResponseEntity.ok(loans);
     }
+     */
     @GetMapping("/get-loans-by-status/{status}")
     public ResponseEntity<?> getLoansByStatus(@PathVariable("status") String status){
         List<LoanDto> loans = loanRepository.getLoansByStatus(status);
@@ -86,6 +89,15 @@ public class LoanController {
         }
         return ResponseEntity.ok(loans);
     }
+    @GetMapping("/get-all-active-loans/")
+    public ResponseEntity<?> getAllActiveLoans(){
+        List<LoanDto> loans = loanRepository.getAllActiveLoans();
+        if(loans.isEmpty()){
+            return ResponseEntity.badRequest().body("No loans available");
+        }
+        return ResponseEntity.ok(loans);
+    }
+
     @GetMapping("/get-all-inactive-loans-by-member/{user_id}")
     public ResponseEntity<?> getAllInactiveLoansByMember(@PathVariable("user_id") int userId){
         List<LoanDto> loans = loanRepository.getAllInactiveLoansByMember(userId);
@@ -96,6 +108,7 @@ public class LoanController {
     }
     @GetMapping("/get-all-rejected-loans-by-member/{user_id}")
     public ResponseEntity<?> getAllRejectedLoansByMember(@PathVariable("user_id") int userId){
+        System.out.println(userId);
         List<LoanDto> loans = loanRepository.getAllRejectedLoansByMember(userId);
         if(loans.isEmpty()){
             return ResponseEntity.badRequest().body("No loans available");
@@ -133,6 +146,14 @@ public class LoanController {
             return ResponseEntity.badRequest().body("No loans available");
         }
         return ResponseEntity.ok(credits);
+    }
+    @PostMapping("/make-payment/")
+    public ResponseEntity<?> makePayment(@RequestBody PaymentDto payment){
+        ResponseDto response = loanRepository.makePayment(payment);
+        if(response.getCode() != 200){
+            return ResponseEntity.badRequest().body(response);
+        }
+        return ResponseEntity.ok(response);
     }
 
 }

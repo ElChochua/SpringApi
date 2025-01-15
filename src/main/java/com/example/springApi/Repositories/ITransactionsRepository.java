@@ -5,5 +5,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ITransactionsRepository{
-
+    void registerTransaction();
 }

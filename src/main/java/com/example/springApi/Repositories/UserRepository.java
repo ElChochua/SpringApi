@@ -66,7 +66,7 @@ public class UserRepository implements IUserRepository{
         return jdbcTemplate.query(Query, new UserCustomMapperRow());
     }
     public List<UserDetailDto> getAllUsersDetails(){
-        String Query = "SELECT ud.user_id, ud.user_name,ud.name,ud.last_name,ud.birthdate,ud.curp,ud.phone_number, ud.email, ud.status, ud.created_at, u.role from  user_detail ud join users u on ud.user_id = u.User_ID AND u.role != 'SUPER_ADMIN'";
+        String Query = "SELECT ud.user_id, ud.user_name,ud.name,ud.last_name,ud.birthdate,ud.curp,ud.phone_number, ud.email, ud.status, ud.created_at, u.role from  user_detail ud left join users u on ud.user_id = u.User_ID AND u.role != 'SUPER_ADMIN'";
         return jdbcTemplate.query(Query, new UserCustomDetailMapperRow());
     }
 }

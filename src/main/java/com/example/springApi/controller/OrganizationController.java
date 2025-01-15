@@ -105,6 +105,7 @@ public class OrganizationController {
     }
     @DeleteMapping("/delete-organization/{organization_id}")
     public ResponseEntity<?> deleteOrganization(@PathVariable int organization_id){
+        System.out.println(organization_id);
         ResponseDto response = organizationRepository.deleteOrganization(organization_id);
         if(response.getCode() != 200){
             return ResponseEntity.badRequest().body(response);

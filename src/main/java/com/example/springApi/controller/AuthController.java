@@ -85,6 +85,9 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterDto userRegister) {
         try {
+            System.out.println(userRegister.getEmail());
+            System.out.println(userRegister.getUsername());
+            System.out.println(userRegister.getPassword());
             userRepository.selfRegisterUser(userRegister);
         } catch (Exception e) {
             if (e.toString().contains("Duplicate entry")) {
