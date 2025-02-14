@@ -2,13 +2,14 @@ package com.example.springApi.RowMappers;
 
 import com.example.springApi.Dtos.Transactions.TransactionsDto;
 import org.springframework.jdbc.core.RowMapper;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class TransactionMapperRow implements RowMapper<TransactionsDto> {
-   @Override
+public class TransactionsMapperRow implements RowMapper<TransactionsDto> {
+    @Override
     public TransactionsDto mapRow(ResultSet rs, int rowNum) throws SQLException {
-    TransactionsDto transactionsDto = new TransactionsDto();
+        TransactionsDto transactionsDto = new TransactionsDto();
         transactionsDto.setTransaction_ID(rs.getInt("transaction_ID"));
         transactionsDto.setLoan_ID(rs.getInt("loan_ID"));
         transactionsDto.setUser_ID(rs.getInt("user_ID"));
@@ -17,5 +18,5 @@ public class TransactionMapperRow implements RowMapper<TransactionsDto> {
         transactionsDto.setIssued_at(rs.getString("issued_at"));
         transactionsDto.setTransaction_description(rs.getString("description"));
         return transactionsDto;
-}
+    }
 }

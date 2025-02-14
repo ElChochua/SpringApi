@@ -1,11 +1,8 @@
 package com.example.springApi.controller;
 
+import com.example.springApi.Dtos.*;
 import com.example.springApi.Model.UserModel;
 import com.example.springApi.Repositories.UserRepository;
-import com.example.springApi.Dtos.AuthRequestDto;
-import com.example.springApi.Dtos.LoginDto;
-import com.example.springApi.Dtos.RefreshTokenDto;
-import com.example.springApi.Dtos.RegisterDto;
 import com.example.springApi.service.JwtUtilService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +13,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,7 +34,8 @@ public class AuthController {
     private JwtUtilService jwtUtilService;
     @Autowired
     private UserRepository userRepository;
-
+    @Autowired
+    private PasswordEncoder passwordEncoder;
     @PostMapping("/login")
     public ResponseEntity<?> auth(@RequestBody AuthRequestDto authRequestDto){
         try{
@@ -55,9 +54,11 @@ public class AuthController {
             return new ResponseEntity<>(loginDto, org.springframework.http.HttpStatus.OK);
         }catch(Exception e){
             if(e.toString().contains("Incorrect result size: expected 1, actual 0")){
-                return new ResponseEntity<>( " Usuario no encontrado", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>( new ResponseDto("Usuario no encontrado", 404), HttpStatus.NOT_FOUND);
+            }else if(e.toString().contains("Bad credentials")){
+                return new ResponseEntity<>( new ResponseDto("Credenciales incorrectas", 401), HttpStatus.UNAUTHORIZED);
             }
-            return new ResponseEntity<>(e + " Error al autenticar", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new ResponseDto("Error al autenticar", 500), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
     @PostMapping("/refresh")
@@ -85,9 +86,6 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterDto userRegister) {
         try {
-            System.out.println(userRegister.getEmail());
-            System.out.println(userRegister.getUsername());
-            System.out.println(userRegister.getPassword());
             userRepository.selfRegisterUser(userRegister);
         } catch (Exception e) {
             if (e.toString().contains("Duplicate entry")) {

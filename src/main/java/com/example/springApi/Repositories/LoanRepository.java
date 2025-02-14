@@ -66,15 +66,29 @@ public class LoanRepository implements ILoanInterface {
                     loan.getAmount(), loan.getInterest_rate(), loan.getTerm_value(), loan.getTerm_unit(),
                     loan.getIssued_at(), loan.getDue_at(), loan.getPurpose(), loan.getCurrency(),
                     loan.getTotal_amount_due());
-            System.out.println("Antes de actualizar"+ userCredits.getAvailable_credit());
-            userCredits.setAvailable_credit(userCredits.getAvailable_credit() - loan.getAmount());
-            System.out.println("Despues de actualizar" + userCredits.getAvailable_credit());
-            updateUserCredits(userCredits, loan.getOrganization_id());
         }catch (Exception e){
             System.out.println(e);
             return new ResponseDto("Loan registration failed" + e, 400);
         }
         return new ResponseDto("Loan registered successfully", 200);
+    }
+    public ResponseDto updateLoan(LoanDto loan){
+        String Query = "UPDATE loans SET amount = ?, interest_rate = ?, term_value = ?, term_unit = ?, total_amount_due = ? WHERE loan_id = ?";
+        try{
+            UserCreditsDto userCredits = getUserCredits(loan.getLoan_applicant_id(), loan.getOrganization_id());
+            if(userCredits.getAvailable_credit() < loan.getAmount()){
+                return new ResponseDto("Insufficient credit", 400);
+            }
+            if(loan.getIssued_at() == null || loan.getIssued_at().isEmpty()){
+                loan.setIssued_at(LocalDate.now().toString());
+            }
+            loan.setDue_at(calculateEndDate(loan.getTerm_value(), loan.getTerm_unit()));
+            loan.setTotal_amount_due(loan.getAmount() + (loan.getAmount() * loan.getInterest_rate()));
+            jdbcTemplate.update(Query, loan.getAmount(), loan.getInterest_rate(), loan.getTerm_value(), loan.getTerm_unit(), loan.getTotal_amount_due(), loan.getLoan_id());
+        }catch(Exception e){
+            return new ResponseDto("Update failed" + e, 400);
+        }
+        return new ResponseDto("Update successful", 200);
     }
     public String calculateEndDate(int term_value, String term_unit){
         LocalDate date = LocalDate.now();
@@ -164,6 +178,10 @@ public class LoanRepository implements ILoanInterface {
         String sql = "SELECT * FROM loans WHERE loan_applicant_id = ? AND status = 'approved'";
         return jdbcTemplate.query(sql, new LoanCustomMapperRow(), user_id);
     }
+    public List<UserCreditsDto> getAllCredits() {
+        String sql = "SELECT * FROM user_credits";
+        return jdbcTemplate.query(sql, new UserCreditsCustomMapperRow());
+    }
     public List<UserCreditsDto> getAllCreditsByUser(int user_id) {
         String sql = "select * from user_credits where User_ID = ?";
         return jdbcTemplate.query(sql, new UserCreditsCustomMapperRow(), user_id);
@@ -173,9 +191,10 @@ public class LoanRepository implements ILoanInterface {
         return jdbcTemplate.query(sql, new LoanCustomMapperRow());
     }
     public ResponseDto makePayment(PaymentDto paymentDto){
-
         String uptadeLoan = "UPDATE loans SET total_amount_due = total_amount_due - ? WHERE loan_id = ?";
         String Query = "insert into transactions (loan_ID, user_ID, transaction_type, amount, description) VALUES(?,?,?,?,?)";
+        double credit_score_increment = paymentDto.getAmount() / 0.1;
+        String UpdateCreditAvailable = "UPDATE user_credits SET available_credit = available_credit + "+paymentDto.getAmount()/2+", credit_score = credit_score + "+paymentDto.getAmount()/0.01+" WHERE user_id = "+paymentDto.getUser_ID()+" AND organization_id = (SELECT organization_id FROM loans WHERE loan_id = "+paymentDto.getLoan_ID()+" AND loan_applicant_id = "+paymentDto.getUser_ID()+")";
         int loan_amount = getDueAmountById(paymentDto.getLoan_ID());
         System.out.println("Loan amount: " + loan_amount);
         System.out.println("Payment amount: " + paymentDto.getAmount());
@@ -187,10 +206,15 @@ public class LoanRepository implements ILoanInterface {
         try{
             jdbcTemplate.update(Query, paymentDto.getLoan_ID(), paymentDto.getUser_ID(), paymentDto.getTransaction_type(), paymentDto.getAmount(), paymentDto.getDescription());
             jdbcTemplate.update(uptadeLoan, paymentDto.getAmount(), paymentDto.getLoan_ID());
+            jdbcTemplate.update(UpdateCreditAvailable);
         }catch (Exception e){
             return new ResponseDto("Payment could not be registered", 400);
         }
         return new ResponseDto("Payment registered successfully", 200);
+    }
+    public List<UserCreditsDto> getAllCreditsByOrganizationId(int organizaiton_id){
+        String sql = "SELECT * FROM user_credits WHERE organization_id = ?";
+        return jdbcTemplate.query(sql, new UserCreditsCustomMapperRow(), organizaiton_id);
     }
     public List<TransactionDto> getAllTransactionsByUser(int user_id) {
         String sql = "SELECT * FROM transactions WHERE user_ID = ?";
@@ -238,6 +262,7 @@ class UserCreditsCustomMapperRow implements RowMapper<UserCreditsDto>{
         userCredits.setCredit_score(rs.getInt("credit_score"));
         userCredits.setCredit_limit(rs.getDouble("credit_limit"));
         userCredits.setAvailable_credit(rs.getDouble("available_credit"));
+        userCredits.setUpdated_at(rs.getString("updated_at"));
         return userCredits;
     }
 }

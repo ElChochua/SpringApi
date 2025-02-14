@@ -131,6 +131,14 @@ public class LoanController {
         }
         return ResponseEntity.ok(response);
     }
+    @GetMapping("/get-all-credits")
+    public ResponseEntity<?> getAllCredits(){
+        List<UserCreditsDto> credits = loanRepository.getAllCredits();
+        if(credits.isEmpty()){
+            return ResponseEntity.badRequest().body("No loans available");
+        }
+        return ResponseEntity.ok(credits);
+    }
     @GetMapping("/get-loans-by-organization/{organization_id}")
     public ResponseEntity<?> getLoansByOrganization(@PathVariable("organization_id") int organizationId){
         List<LoanDto> loans = loanRepository.getLoansByOrganization(organizationId);
@@ -147,9 +155,26 @@ public class LoanController {
         }
         return ResponseEntity.ok(credits);
     }
+    @GetMapping("/get-all-credits-by-organization/{organization_id}")
+    public ResponseEntity<?> getAllCreditsByOrganization(@PathVariable("organization_id") int organizationId){
+        List<UserCreditsDto> credits = loanRepository.getAllCreditsByOrganizationId(organizationId);
+        if(credits.isEmpty()){
+            return ResponseEntity.badRequest().body(new ResponseDto("No hay creditos en esta organiacion", 404));
+        }
+        return ResponseEntity.ok(credits);
+    }
     @PostMapping("/make-payment/")
     public ResponseEntity<?> makePayment(@RequestBody PaymentDto payment){
         ResponseDto response = loanRepository.makePayment(payment);
+        if(response.getCode() != 200){
+            return ResponseEntity.badRequest().body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+    @PutMapping("/update-loan")
+    public ResponseEntity<?> updateLoan(@RequestBody LoanDto loan){
+
+        ResponseDto response = loanRepository.updateLoan(loan);
         if(response.getCode() != 200){
             return ResponseEntity.badRequest().body(response);
         }

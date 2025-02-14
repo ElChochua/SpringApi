@@ -63,7 +63,7 @@ public class OrganizationController {
     public ResponseEntity<?> getAllOrganizationByOwner(@PathVariable int owner_id){
         List<OrganizationDetailsDto> organizations = organizationRepository.getAllOrganizationByOwner(owner_id);
         if(organizations.isEmpty()){
-            return ResponseEntity.badRequest().body("No organizations available");
+            return ResponseEntity.badRequest().body(new ResponseDto("No organizations available", 404));
         }
         return ResponseEntity.ok(organizations);
     }

@@ -1,5 +1,6 @@
 package com.example.springApi.controller;
 
+import com.example.springApi.Dtos.UserCreditsDtos.UpdateUserRoleDto;
 import com.example.springApi.Model.UserModel;
 import com.example.springApi.Repositories.OrganizationRepository;
 import com.example.springApi.Repositories.UserRepository;
@@ -75,6 +76,11 @@ public class SuperAdminController {
             return ResponseEntity.badRequest().body(response);
         }
         return ResponseEntity.ok(response);
+    }
+    @PutMapping("/update-user-role")
+    public ResponseEntity<?> updateUserRole(@RequestBody UpdateUserRoleDto user){
+        userRepository.updateUserRole(user);
+        return ResponseEntity.ok(user);
     }
 
 }
