@@ -4,7 +4,7 @@ import com.example.springApi.Dtos.UserCreditsDtos.UpdateUserRoleDto;
 import com.example.springApi.Model.UserModel;
 import com.example.springApi.Dtos.RegisterDto;
 import com.example.springApi.Dtos.ResponseDto;
-import com.example.springApi.Dtos.UsersDtos.UserDetailDto;
+import com.example.springApi.Dtos.UsersDtos.UserDetailsDto;
 import com.example.springApi.Dtos.UsersDtos.UsersDto;
 import com.example.springApi.RowMappers.UserCustomDetailMapperRow;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,7 +67,7 @@ public class UserRepository implements IUserRepository{
         String Query = "SELECT user_id, user, email, role FROM users WHERE role IS NULL";
         return jdbcTemplate.query(Query, new UserCustomMapperRow());
     }
-    public List<UserDetailDto> getAllUsersDetails(){
+    public List<UserDetailsDto> getAllUsersDetails(){
         String Query = "SELECT \n" +
                 "    ud.user_id, ud.user_name, ud.name, ud.last_name, ud.birthdate, \n" +
                 "    ud.curp, ud.phone_number, ud.email, ud.status, ud.created_at, \n" +
@@ -77,11 +77,11 @@ public class UserRepository implements IUserRepository{
                 "WHERE u.role IS NULL OR u.role != 'SUPER_ADMIN'";
         return jdbcTemplate.query(Query, new UserCustomDetailMapperRow());
     }
-    public UserDetailDto getUserById(int id){
+    public UserDetailsDto getUserById(int id){
         String Query = "Select * from user_detail where user_id = ?";
         return jdbcTemplate.queryForObject(Query, new Object[]{id}, new UserCustomDetailMapperRowWhitOutRole());
     }
-    public ResponseDto updateUser(UserDetailDto user){
+    public ResponseDto updateUser(UserDetailsDto user){
         String Query = "UPDATE user_detail SET name = ?, last_name = ?, birthdate = ?, curp = ?, phone_number = ? WHERE user_id = ?";
         try {
             jdbcTemplate.update(Query, user.getName(), user.getLast_name(), user.getBirthdate(), user.getCurp(), user.getPhone_number(), user.getUser_id());
@@ -112,10 +112,10 @@ class UserCustomMapperRow implements RowMapper<UsersDto>{
         return user;
     }
 }
-class UserCustomDetailMapperRowWhitOutRole implements RowMapper<UserDetailDto>{
+class UserCustomDetailMapperRowWhitOutRole implements RowMapper<UserDetailsDto>{
     @Override
-    public UserDetailDto mapRow(ResultSet rs, int rowNum) throws SQLException {
-        UserDetailDto user = new UserDetailDto();
+    public UserDetailsDto mapRow(ResultSet rs, int rowNum) throws SQLException {
+        UserDetailsDto user = new UserDetailsDto();
         user.setUser_id(rs.getInt("user_id"));
         user.setUser_name(rs.getString("user_name"));
         user.setName(rs.getString("name"));

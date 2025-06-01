@@ -5,9 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Data
-@Getter
-@Setter
-public class UserDetailDto{
+public class UserDetailsDto {
     private int user_id;
     private String user_name;
     private String email;

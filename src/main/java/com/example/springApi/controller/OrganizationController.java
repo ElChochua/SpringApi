@@ -1,9 +1,14 @@
 package com.example.springApi.controller;
 
-import com.example.springApi.Dtos.UsersDtos.UserDetailDto;
 import com.example.springApi.Dtos.organizationsDtos.*;
-import com.example.springApi.Repositories.OrganizationRepository;
 import com.example.springApi.Dtos.ResponseDto;
+import com.example.springApi.Model.CiclesModel;
+import com.example.springApi.Model.OrganizationsMember;
+import com.example.springApi.Model.OrganizationsModel;
+import com.example.springApi.service.CiclesService;
+import com.example.springApi.service.OrganizationsMemberService;
+import com.example.springApi.service.OrganizationsService;
+import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -17,27 +22,27 @@ import java.util.logging.Logger;
 @RequestMapping("api/v1/organization")
 public class OrganizationController {
     @Autowired
-    OrganizationRepository organizationRepository;
+    OrganizationsService organizationsService;
+    @Autowired
+    CiclesService ciclesService;
+    @Autowired
+    OrganizationsMemberService organizationsMemberService;
     Logger logger = Logger.getLogger(OrganizationController.class.getName());
     @PostMapping("/register-organization")
-    public ResponseEntity<?> registerOrganization(@RequestBody OrganizationRegisterDto organization){
-        ResponseDto response = organizationRepository.registerOrganization(organization);
+    public ResponseEntity<?> registerOrganization(@RequestBody OrganizationsModel  organization, @RequestBody CiclesModel cicle){
+        organizationsService.save(organization);
+        cicle.setOrganization(organization);
+        ciclesService.save(cicle);
+        organization.setActual_cicle(cicle);
+        ResponseDto response = organizationsService.save(organization);
         if(response.getCode() != 200){
             return ResponseEntity.badRequest().body(response);
         }
-        return ResponseEntity.ok(response);
-    }
-    @GetMapping("/get-all-organizations-details")
-    public ResponseEntity<?> getAllOrganizationsDetails(){
-        List<OrganizationDetailsDto> organizations = organizationRepository.getAllOrganizationsDetails();
-        if(organizations.isEmpty()){
-            return ResponseEntity.badRequest().body("No organizations available");
-        }
-        return ResponseEntity.ok(organizations);
+        return ResponseEntity.ok("Organization registered successfully");
     }
     @GetMapping("/get-all-organizations")
     public ResponseEntity<?> getAllOrganizations(){
-        List<OrganizationDto> organizations = organizationRepository.getAllOrganizations();
+        List<OrganizationsModel> organizations = organizationsService.getAllOrganizations();
         if(organizations.isEmpty()){
             return ResponseEntity.badRequest().body("No organizations available");
         }
@@ -45,7 +50,7 @@ public class OrganizationController {
     }
     @GetMapping("/get-all-organizations-inactives")
     public ResponseEntity<?> getAllOrganizationsInactives(){
-        List<OrganizationDetailsDto> organizations = organizationRepository.getAllOrganizationInactives();
+        List<OrganizationsModel> organizations = organizationsService.getAllInactiveOrganizaitons();
         if(organizations.isEmpty()){
             return ResponseEntity.badRequest().body("No organizations available");
         }
@@ -53,7 +58,7 @@ public class OrganizationController {
     }
     @GetMapping("/get-all-organizations-actives")
     public ResponseEntity<?> getAllOrganizationsActives(){
-        List<OrganizationDetailsDto> organizations = organizationRepository.getAllOrganizationActives();
+        List<OrganizationsModel> organizations = organizationsService.getAllActiveOrganizaitons();
         if(organizations.isEmpty()){
             return ResponseEntity.badRequest().body("No organizations available");
         }
@@ -61,15 +66,16 @@ public class OrganizationController {
     }
     @GetMapping("/get-all-organizations-by-owner/{owner_id}")
     public ResponseEntity<?> getAllOrganizationByOwner(@PathVariable int owner_id){
-        List<OrganizationDetailsDto> organizations = organizationRepository.getAllOrganizationByOwner(owner_id);
+        List<OrganizationsModel> organizations = organizationsService.getAllOrganizationsByOwner(owner_id);
         if(organizations.isEmpty()){
             return ResponseEntity.badRequest().body(new ResponseDto("No organizations available", 404));
         }
         return ResponseEntity.ok(organizations);
     }
     @PostMapping("/add-user-to-organization")
-    public ResponseEntity<?> addUserToOrganization(@RequestBody AddOrganizationMemberDto addOrganizationMemberDto){
-        ResponseDto response = organizationRepository.addUserToOrganization(addOrganizationMemberDto);
+    public ResponseEntity<?> addUserToOrganization(@RequestBody OrganizationsModel organization, @RequestBody OrganizationsMember member){
+        member.setOrganization(organization);
+        ResponseDto response = organizationsService.saveOrganization(organization);
         if(response.getCode() != 200){
             return ResponseEntity.badRequest().body(response);
         }
@@ -78,26 +84,15 @@ public class OrganizationController {
     //Endpoint to get all organization where a user is member
     @GetMapping("/get-all-organizations-by-user/{user_id}")
     public ResponseEntity<?> getAllOrganizationsByUser(@PathVariable int user_id){
-        List<OrganizationDetailsDto> organizations = organizationRepository.getAllOrganizationsByUser(user_id);
+        List<OrganizationsModel> organizations = organizationsMemberService.findOrganizationsByMemberId(user_id);
         if(organizations.isEmpty()){
             return ResponseEntity.badRequest().body("No organizations available");
         }
         return ResponseEntity.ok(organizations);
     }
-    @PutMapping("/update-organization-status")
-    public ResponseEntity<?> updateOrganizationStatus(@RequestBody Map<String, Object> payload){
-        int organization_id = (int) payload.get("organization_id");
-        String status = (String) payload.get("status");
-        System.out.println(organization_id + " " + status);
-        ResponseDto response = organizationRepository.updateOrganizationStatus(organization_id, status);
-        if(response.getCode() != 200){
-            return ResponseEntity.badRequest().body(response);
-        }
-        return ResponseEntity.ok(response);
-    }
-    @PutMapping("/update-organization-details")
-    public ResponseEntity<?> updateOrganizationDetails(@RequestBody OrganizationRegisterDto organization){
-        ResponseDto response = organizationRepository.updateOrganizationDetails(organization);
+    @PutMapping("/update-organization")
+    public ResponseEntity<?> updateOrganizationStatus(@RequestBody OrganizationsModel organization){
+        ResponseDto response = organizationsService.saveOrganization(organization);
         if(response.getCode() != 200){
             return ResponseEntity.badRequest().body(response);
         }
@@ -105,16 +100,15 @@ public class OrganizationController {
     }
     @DeleteMapping("/delete-organization/{organization_id}")
     public ResponseEntity<?> deleteOrganization(@PathVariable int organization_id){
-        System.out.println(organization_id);
-        ResponseDto response = organizationRepository.deleteOrganization(organization_id);
+        ResponseDto response =  organizationsService.removeById(organization_id);
         if(response.getCode() != 200){
             return ResponseEntity.badRequest().body(response);
         }
         return ResponseEntity.ok(response);
     }
-    @DeleteMapping("/delete-user-from-organization/{user_id}/{organization_id}")
-    public ResponseEntity<?> deleteUserFromOrganization(@PathVariable("user_id") int user_id, @PathVariable("organization_id") int organization_id){
-        ResponseDto response = organizationRepository.deleteUserFromOrganization(organization_id, user_id);
+    @DeleteMapping("/delete-user-from-organization/{member_id}")
+    public ResponseEntity<?> deleteUserFromOrganization(@PathVariable("member_id") int member_id){
+        ResponseDto response = organizationsMemberService.removeByOrganization_member_id(member_id);
         if(response.getCode() != 200){
             return ResponseEntity.badRequest().body(response);
         }
@@ -122,7 +116,7 @@ public class OrganizationController {
     }
     @GetMapping("/get-users-outside-organization/{organization_id}")
     public ResponseEntity<?> getUsersOutsideOrganization(@PathVariable int organization_id){
-        List<OrganizationMemberDto> users = organizationRepository.getAllUsersOutOfOrganization(organization_id);
+
         if(users.isEmpty()){
             return ResponseEntity.badRequest().body("No users available");
         }
@@ -130,7 +124,7 @@ public class OrganizationController {
     }
     @PostMapping("/update-member-role")
     public ResponseEntity<?> updateMemberRole(@RequestBody OrganizationMemberDto organizationMemberDto){
-        ResponseDto response = organizationRepository.updateMemberRole(organizationMemberDto);
+
         if(response.getCode() != 200){
             return ResponseEntity.badRequest().body(response);
         }
@@ -138,7 +132,7 @@ public class OrganizationController {
     }
     @PostMapping("/delete-member-from-organization/{organization_id}/{user_id}")
     public ResponseEntity<?> deleteMember(@PathVariable int organization_id, @PathVariable int user_id){
-        ResponseDto response = organizationRepository.removeMemberFromOrganization(organization_id, user_id);
+
         if(response.getCode() != 200){
             return ResponseEntity.badRequest().body(response);
         }
@@ -146,7 +140,7 @@ public class OrganizationController {
     }
     @GetMapping("/get-organization-members/{organization_id}")
     public ResponseEntity<?> getOrganizationMembers(@PathVariable int organization_id){
-        List<OrganizationMemberDto> users = organizationRepository.getAllOrganizationMembers(organization_id);
+
         if(users.isEmpty()){
             return ResponseEntity.badRequest().body("No users available");
         }

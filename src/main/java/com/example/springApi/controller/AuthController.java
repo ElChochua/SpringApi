@@ -1,6 +1,7 @@
 package com.example.springApi.controller;
 
 import com.example.springApi.Dtos.*;
+import com.example.springApi.Dtos.UsersDtos.UserDetailsDto;
 import com.example.springApi.Model.UserModel;
 import com.example.springApi.Repositories.UserRepository;
 import com.example.springApi.service.JwtUtilService;
@@ -84,9 +85,10 @@ public class AuthController {
         }
     }
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody RegisterDto userRegister) {
+    public ResponseEntity<?> registerUser(@RequestBody RegisterDto userRegister, @RequestBody UserDetailsDto userDetailsDto) {
         try {
             userRepository.selfRegisterUser(userRegister);
+            userRepository.updateUser(userDetailsDto);
         } catch (Exception e) {
             if (e.toString().contains("Duplicate entry")) {
                 return ResponseEntity.badRequest().body("El usuario ya existe");

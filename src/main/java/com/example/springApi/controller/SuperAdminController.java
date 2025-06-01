@@ -2,10 +2,9 @@ package com.example.springApi.controller;
 
 import com.example.springApi.Dtos.UserCreditsDtos.UpdateUserRoleDto;
 import com.example.springApi.Model.UserModel;
-import com.example.springApi.Repositories.OrganizationRepository;
 import com.example.springApi.Repositories.UserRepository;
 import com.example.springApi.Dtos.ResponseDto;
-import com.example.springApi.Dtos.UsersDtos.UserDetailDto;
+import com.example.springApi.Dtos.UsersDtos.UserDetailsDto;
 import com.example.springApi.Dtos.UsersDtos.UsersDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -47,7 +46,7 @@ public class SuperAdminController {
     }
     @GetMapping("/get-all-users-details")
     public ResponseEntity<?> getAllUsersDetails(){
-        List<UserDetailDto> users = userRepository.getAllUsersDetails();
+        List<UserDetailsDto> users = userRepository.getAllUsersDetails();
         if(users.isEmpty()){
             return ResponseEntity.badRequest().body("No hay usuarios disponibles");
         }

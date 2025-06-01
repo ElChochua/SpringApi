@@ -1,7 +1,7 @@
 package com.example.springApi.controller;
 
 import com.example.springApi.Dtos.ResponseDto;
-import com.example.springApi.Dtos.UsersDtos.UserDetailDto;
+import com.example.springApi.Dtos.UsersDtos.UserDetailsDto;
 import com.example.springApi.Repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,14 +19,14 @@ public class UserController {
     }
     @GetMapping("/get-user-by-id/{user_id}")
     public ResponseEntity<?> getUserById(@PathVariable("user_id") int user_id){
-        UserDetailDto user = userRepository.getUserById(user_id);
+        UserDetailsDto user = userRepository.getUserById(user_id);
         if(user == null){
             return ResponseEntity.badRequest().body(new ResponseDto("No user found", 404));
         }
         return ResponseEntity.ok(user);
     }
     @PutMapping("/update-user")
-    public ResponseEntity<?> updateUser(@RequestBody UserDetailDto user){
+    public ResponseEntity<?> updateUser(@RequestBody UserDetailsDto user){
         ResponseDto response = userRepository.updateUser(user);
         if(response.getCode() != 200){
             return ResponseEntity.badRequest().body(response);

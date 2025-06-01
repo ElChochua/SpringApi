@@ -1,15 +1,15 @@
 package com.example.springApi.RowMappers;
 
-import com.example.springApi.Dtos.UsersDtos.UserDetailDto;
+import com.example.springApi.Dtos.UsersDtos.UserDetailsDto;
 import org.springframework.jdbc.core.RowMapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class UserCustomDetailMapperRow implements RowMapper<UserDetailDto> {
+public class UserCustomDetailMapperRow implements RowMapper<UserDetailsDto> {
     @Override
-    public UserDetailDto mapRow(ResultSet rs, int rowNum) throws SQLException {
-        UserDetailDto user = new UserDetailDto();
+    public UserDetailsDto mapRow(ResultSet rs, int rowNum) throws SQLException {
+        UserDetailsDto user = new UserDetailsDto();
         user.setUser_id(rs.getInt("user_id"));
         user.setUser_name(rs.getString("user_name"));
         user.setEmail(rs.getString("email"));
